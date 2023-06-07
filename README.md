@@ -1,4 +1,4 @@
-# perp-ve
+# NFTEarth implementation of the voting escrowed model. 
 
 ## Local Development and Testing
 
