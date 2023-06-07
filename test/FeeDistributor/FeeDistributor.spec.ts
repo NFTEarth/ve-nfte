@@ -2,16 +2,16 @@ import chai, { expect } from "chai"
 import { solidity } from "ethereum-waffle"
 import { parseEther, parseUnits } from "ethers/lib/utils"
 import { ethers, waffle } from "hardhat"
-import { FeeDistributor, TestERC20, VePERP } from "../../typechain"
+import { FeeDistributor, TestERC20, VeNFTE } from "../../typechain"
 import { getLatestTimestamp, getWeekTimestamp } from "../shared/utilities"
 
 chai.use(solidity)
 
 describe("FeeDistributor", () => {
     const [admin, alice, bob, carol] = waffle.provider.getWallets()
-    let vePERP: VePERP
+    let veNFTE: VeNFTE
     let feeDistributor: FeeDistributor
-    let testPERP: TestERC20
+    let testNFTE: TestERC20
     let testUSDC: TestERC20
     const DAY = 86400
     const WEEK = DAY * 7
@@ -20,31 +20,31 @@ describe("FeeDistributor", () => {
 
     beforeEach(async () => {
         const testERC20Factory = await ethers.getContractFactory("TestERC20")
-        testPERP = await testERC20Factory.deploy()
-        await testPERP.__TestERC20_init("PERP", "PERP", 18)
+        testNFTE = await testERC20Factory.deploy()
+        await testNFTE.__TestERC20_init("NFTE", "NFTE", 18)
 
         testUSDC = await testERC20Factory.deploy()
         await testUSDC.__TestERC20_init("USDC", "USDC", 6)
 
-        const vePERPFactory = await ethers.getContractFactory("vePERP")
-        vePERP = (await vePERPFactory.deploy(testPERP.address, "vePERP", "vePERP", "v1")) as VePERP
+        const veNFTEFactory = await ethers.getContractFactory("veNFTE")
+        veNFTE = (await veNFTEFactory.deploy(testNFTE.address, "veNFTE", "veNFTE", "v1")) as VeNFTE
 
         const feeDistributorFactory = await ethers.getContractFactory("FeeDistributor")
         feeDistributor = (await feeDistributorFactory.deploy(
-            vePERP.address,
+            veNFTE.address,
             await getLatestTimestamp(),
             testUSDC.address,
             admin.address,
             admin.address,
         )) as FeeDistributor
 
-        await testPERP.mint(alice.address, parseEther("1000"))
-        await testPERP.mint(bob.address, parseEther("1000"))
-        await testPERP.mint(carol.address, parseEther("1000"))
+        await testNFTE.mint(alice.address, parseEther("1000"))
+        await testNFTE.mint(bob.address, parseEther("1000"))
+        await testNFTE.mint(carol.address, parseEther("1000"))
 
-        await testPERP.connect(alice).approve(vePERP.address, parseEther("1000"))
-        await testPERP.connect(bob).approve(vePERP.address, parseEther("1000"))
-        await testPERP.connect(carol).approve(vePERP.address, parseEther("1000"))
+        await testNFTE.connect(alice).approve(veNFTE.address, parseEther("1000"))
+        await testNFTE.connect(bob).approve(veNFTE.address, parseEther("1000"))
+        await testNFTE.connect(carol).approve(veNFTE.address, parseEther("1000"))
         await testUSDC.connect(admin).approve(feeDistributor.address, ethers.constants.MaxUint256)
     })
 
@@ -55,7 +55,7 @@ describe("FeeDistributor", () => {
 
         describe("burn", () => {
             it("force error when token is not usdc", async () => {
-                await expect(feeDistributor.connect(admin).burn(testPERP.address)).to.be.reverted
+                await expect(feeDistributor.connect(admin).burn(testNFTE.address)).to.be.reverted
             })
 
             it("force error when contract is killed", async () => {
@@ -94,8 +94,8 @@ describe("FeeDistributor", () => {
                 // week1
                 const week1 = getWeekTimestamp(await getLatestTimestamp(), false)
                 await waffle.provider.send("evm_setNextBlockTimestamp", [week1])
-                // alice lock 100 PERP for 2 weeks
-                await vePERP.connect(alice).create_lock(parseEther("100"), week1 + 2 * WEEK)
+                // alice lock 100 NFTE for 2 weeks
+                await veNFTE.connect(alice).create_lock(parseEther("100"), week1 + 2 * WEEK)
                 // checkpoint token
                 await feeDistributor.checkpoint_token()
                 await waffle.provider.send("evm_setNextBlockTimestamp", [(await getLatestTimestamp()) + DAY])
@@ -107,7 +107,7 @@ describe("FeeDistributor", () => {
                 const week2 = week1 + WEEK
                 await waffle.provider.send("evm_setNextBlockTimestamp", [week2])
                 // bob lock 100 PERP for 1 week
-                await vePERP.connect(bob).create_lock(parseEther("100"), week2 + WEEK)
+                await veNFTE.connect(bob).create_lock(parseEther("100"), week2 + WEEK)
                 // checkpoint token
                 await feeDistributor.checkpoint_token()
                 await waffle.provider.send("evm_setNextBlockTimestamp", [(await getLatestTimestamp()) + DAY])
@@ -130,7 +130,7 @@ describe("FeeDistributor", () => {
                 const week4 = week3 + WEEK
                 await waffle.provider.send("evm_setNextBlockTimestamp", [week4])
                 // carol lock 100 PERP for 1 week
-                await vePERP.connect(carol).create_lock(parseEther("100"), week4 + WEEK)
+                await veNFTE.connect(carol).create_lock(parseEther("100"), week4 + WEEK)
                 // checkpoint token
                 await feeDistributor.checkpoint_token()
                 await waffle.provider.send("evm_setNextBlockTimestamp", [(await getLatestTimestamp()) + DAY])
@@ -196,7 +196,7 @@ describe("FeeDistributor", () => {
                 const week1 = getWeekTimestamp(await getLatestTimestamp(), false)
                 await waffle.provider.send("evm_setNextBlockTimestamp", [week1])
                 // alice lock 100 PERP for 1 weeks
-                await vePERP.connect(alice).create_lock(parseEther("100"), week1 + 2 * WEEK)
+                await veNFTE.connect(alice).create_lock(parseEther("100"), week1 + 2 * WEEK)
                 // checkpoint token
                 await feeDistributor.checkpoint_token()
                 await waffle.provider.send("evm_setNextBlockTimestamp", [(await getLatestTimestamp()) + DAY])
@@ -247,7 +247,7 @@ describe("FeeDistributor", () => {
             beforeEach(async () => {
                 const week1 = getWeekTimestamp(await getLatestTimestamp(), false)
                 // alice lock 100 PERP for 2 weeks
-                await vePERP.connect(alice).create_lock(parseEther("100"), week1 + 2 * WEEK)
+                await veNFTE.connect(alice).create_lock(parseEther("100"), week1 + 2 * WEEK)
 
                 await waffle.provider.send("evm_setNextBlockTimestamp", [week1])
 
@@ -277,7 +277,7 @@ describe("FeeDistributor", () => {
             const currentWeek = getWeekTimestamp(await getLatestTimestamp(), true)
 
             // alice lock 100 PERP for 3 weeks
-            await vePERP.connect(alice).create_lock(parseEther("100"), currentWeek + 3 * WEEK)
+            await veNFTE.connect(alice).create_lock(parseEther("100"), currentWeek + 3 * WEEK)
 
             await waffle.provider.send("evm_setNextBlockTimestamp", [currentWeek + 2 * WEEK + 2 * DAY])
 
@@ -307,11 +307,11 @@ describe("FeeDistributor", () => {
     describe("recover balance", async () => {
         beforeEach(async () => {
             await testUSDC.mint(feeDistributor.address, parseUnits("1000", 6))
-            await testPERP.mint(feeDistributor.address, parseEther("1000"))
+            await testNFTE.mint(feeDistributor.address, parseEther("1000"))
         })
 
         it("force error when called by non-admin", async () => {
-            await expect(feeDistributor.connect(alice).recover_balance(testPERP.address)).to.be.reverted
+            await expect(feeDistributor.connect(alice).recover_balance(testNFTE.address)).to.be.reverted
         })
 
         it("force error when trying to recover fee token", async () => {
@@ -319,8 +319,8 @@ describe("FeeDistributor", () => {
         })
 
         it("recover balance to emergency return address", async () => {
-            await expect(() => feeDistributor.connect(admin).recover_balance(testPERP.address)).to.changeTokenBalance(
-                testPERP,
+            await expect(() => feeDistributor.connect(admin).recover_balance(testNFTE.address)).to.changeTokenBalance(
+                testNFTE,
                 admin,
                 parseEther("1000"),
             )

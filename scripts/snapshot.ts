@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv"
 import EthDater from "ethereum-block-by-date"
 import { BigNumber, ethers } from "ethers"
-import { IERC20, IERC20__factory, VePERP, VePERP__factory } from "../typechain"
+import { IERC20, IERC20__factory, VeNFTE, VeNFTE__factory } from "../typechain"
 
 dotenv.config()
 

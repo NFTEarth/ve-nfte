@@ -2,17 +2,17 @@ import chai, { expect } from "chai"
 import { solidity } from "ethereum-waffle"
 import { parseUnits } from "ethers/lib/utils"
 import { ethers, waffle } from "hardhat"
-import { FeeDistributor, SurplusBeneficiary, TestERC20, VePERP } from "../../typechain"
+import { FeeDistributor, SurplusBeneficiary, TestERC20, VeNFTE } from "../../typechain"
 import { getLatestTimestamp } from "../shared/utilities"
 
 chai.use(solidity)
 
 describe("SurplusBeneficiary test", () => {
     const [admin, alice] = waffle.provider.getWallets()
-    let vePERP: VePERP
+    let veNFTE: VeNFTE
     let feeDistributor: FeeDistributor
     let surplusBeneficiary: SurplusBeneficiary
-    let testPERP: TestERC20
+    let testNFTE: TestERC20
     let testUSDC: TestERC20
     let treasury: TestERC20
     const daoPercentage = 0.42e6 // 42%
@@ -23,8 +23,8 @@ describe("SurplusBeneficiary test", () => {
 
     beforeEach(async () => {
         const testERC20Factory = await ethers.getContractFactory("TestERC20")
-        testPERP = await testERC20Factory.deploy()
-        await testPERP.__TestERC20_init("PERP", "PERP", 18)
+        testNFTE = await testERC20Factory.deploy()
+        await testNFTE.__TestERC20_init("NFTE", "NFTE", 18)
 
         testUSDC = await testERC20Factory.deploy()
         await testUSDC.__TestERC20_init("USDC", "USDC", 6)
@@ -32,12 +32,12 @@ describe("SurplusBeneficiary test", () => {
         // use erc20 contract as a treasury contract
         treasury = await testERC20Factory.deploy()
 
-        const vePERPFactory = await ethers.getContractFactory("vePERP")
-        vePERP = (await vePERPFactory.deploy(testPERP.address, "vePERP", "vePERP", "v1")) as VePERP
+        const veNFTEFactory = await ethers.getContractFactory("veNFTE")
+        veNFTE = (await veNFTEFactory.deploy(testNFTE.address, "veNFTE", "veNFTE", "v1")) as VeNFTE
 
         const feeDistributorFactory = await ethers.getContractFactory("FeeDistributor")
         feeDistributor = (await feeDistributorFactory.deploy(
-            vePERP.address,
+            veNFTE.address,
             await getLatestTimestamp(),
             testUSDC.address,
             admin.address,

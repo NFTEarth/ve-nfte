@@ -7,16 +7,16 @@
 
 # FeeDistributor.vy is a fork of Curve with minor modification.
 # Original Curve repo: https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/FeeDistributor.vy
-# we change the claim and claim_many function, instead of using transfer function, we use voting_escrow depositFor to distribute vePERP reward.
+# we change the claim and claim_many function, instead of using transfer function, we use voting_escrow depositFor to distribute veNFTE reward.
 # we also add min_lock_duration checker for claim and claim_many.
 
 # to calculate reward APR calculation, it will need:
 # - FeeDistributor.tokens_per_week(week)
-# - vePERP.totalSupply()
-# - vePERP.locked(user).perp_amt
-# - vePERP.balanceOf(user)
-# - PERP_price
-# APR = FeeDistributor.tokens_per_week(week) * 1 * (vePERP.balanceOf(user) / vePERP.totalSupply()) / (vePERP.locked(user).perp_amt * PERP_price) * 52
+# - veNFTE.totalSupply()
+# - veNFTE.locked(user).nfte_amt
+# - veNFTE.balanceOf(user)
+# - NFTE_price
+# APR = FeeDistributor.tokens_per_week(week) * 1 * (veNFTE.balanceOf(user) / veNFTE.totalSupply()) / (veNFTE.locked(user).perp_amt * NFTE_price) * 52
 
 
 from vyper.interfaces import ERC20
@@ -236,7 +236,7 @@ def _checkpoint_total_supply():
 @external
 def checkpoint_total_supply():
     """
-    @notice Update the vePERP total supply checkpoint
+    @notice Update the veNFTE total supply checkpoint
     @dev The checkpoint is also updated by the first claimant each
          new epoch week. This function may be called independently
          of a claim, to reduce claiming gas costs.

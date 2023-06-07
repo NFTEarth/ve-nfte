@@ -9,22 +9,16 @@
      more than `MAXTIME` (1 year).
 """
 
+#
+#          _   ____________________
+#    _  __/ | / / ____/_  __/ ____/
+#   | |/_/  |/ / /_    / / / __/   
+#  _>  </ /|  / __/   / / / /___   
+# /_/|_/_/ |_/_/     /_/ /_____/   
 # =================================================================
-# |         ___           ___           ___           ___         |
-# |        /\  \         /\  \         /\  \         /\  \        |
-# |       /::\  \       /::\  \       /::\  \       /::\  \       |
-# |      /:/\:\  \     /:/\:\  \     /:/\:\  \     /:/\:\  \      |
-# |     /::\~\:\  \   /::\~\:\  \   /::\~\:\  \   /::\~\:\  \     |
-# |    /:/\:\ \:\__\ /:/\:\ \:\__\ /:/\:\ \:\__\ /:/\:\ \:\__\    |
-# |    \/__\:\/:/  / \:\~\:\ \/__/ \/_|::\/:/  / \/__\:\/:/  /    |
-# |         \::/  /   \:\ \:\__\      |:|::/  /       \::/  /     |
-# |          \/__/     \:\ \/__/      |:|\/__/         \/__/      |
-# |                     \:\__\        |:|  |                      |
-# |                      \/__/         \|__|                      |
+# ============================ xNFTE =============================
 # =================================================================
-# ============================ vePERP =============================
-# =================================================================
-# Perpetual Protocol: https://github.com/perpetual-protocol
+# NFTEarth Protocol: https://github.com/NFTEarth
 
 # Original idea and credit:
 # Curve Finance's veCRV
@@ -33,11 +27,9 @@
 # Frax Finance's veFXS
 # https://github.com/FraxFinance/frax-solidity/blob/master/src/hardhat/old_contracts/Curve/veFXS.vy
 #
-# vePERP is a fork of veFXS. With the modification that
-# - both balance and supply can be accessed weighted (decay to locked PERP amount) or unweighted (decay to 0)
+# xNFTE is a fork of veFXS. With the modification that
+# - both balance and supply can be accessed weighted (decay to locked NFTE amount) or unweighted (decay to 0)
 # - more flexible timestamp-based historical query
-
-# Perp Reviewer(s) / Contributor(s)
 
 # Voting escrow to have time-weighted votes
 # Votes have a weight depending on time, so that users are committed
@@ -57,7 +49,7 @@ struct Point:
     slope: int128  # - dweight / dt
     ts: uint256
     blk: uint256  # block
-    perp_amt: uint256
+    nfte_amt: uint256
 # We cannot really do block numbers per se b/c slope is per time, not per block
 # and per block could be fairly bad b/c Ethereum changes blocktimes.
 # What we can do is to extrapolate ***At functions
@@ -168,7 +160,7 @@ def __init__(token_addr: address, _name: String[64], _symbol: String[32], _versi
     self.token = token_addr
     self.point_history[0].blk = block.number
     self.point_history[0].ts = block.timestamp
-    self.point_history[0].perp_amt = 0
+    self.point_history[0].nfte_amt = 0
 
     _decimals: uint256 = ERC20(token_addr).decimals()
     assert _decimals <= 255
@@ -227,7 +219,7 @@ def apply_smart_wallet_checker():
 @external
 def toggleEmergencyUnlock():
     """
-    @dev Used to allow early withdrawals of vePERP back into PERP, in case of an emergency
+    @dev Used to allow early withdrawals of veNFTE back into NFTE, in case of an emergency
     """
     assert msg.sender == self.admin  # dev: admin only
     self.emergencyUnlockActive = not (self.emergencyUnlockActive)
@@ -237,10 +229,10 @@ def toggleEmergencyUnlock():
 @external
 def recoverERC20(token_addr: address, amount: uint256):
     """
-    @dev Used to recover non-PERP ERC20 tokens
+    @dev Used to recover non-NFTE ERC20 tokens
     """
     assert msg.sender == self.admin  # dev: admin only
-    assert token_addr != self.token  # Cannot recover PERP. Use toggleEmergencyUnlock instead and have users pull theirs out individually
+    assert token_addr != self.token  # Cannot recover NFTE. Use toggleEmergencyUnlock instead and have users pull theirs out individually
     ERC20(token_addr).transfer(self.admin, amount)
 
 @internal
@@ -325,11 +317,11 @@ def _checkpoint(addr: address, old_locked: LockedBalance, new_locked: LockedBala
             else:
                 new_dslope = self.slope_changes[new_locked.end]
 
-    last_point: Point = Point({bias: 0, slope: 0, ts: block.timestamp, blk: block.number, perp_amt: 0})
+    last_point: Point = Point({bias: 0, slope: 0, ts: block.timestamp, blk: block.number, nfte_amt: 0})
     if _epoch > 0:
         last_point = self.point_history[_epoch]
     else:
-        last_point.perp_amt = self.supply
+        last_point.nfte_amt = self.supply
     last_checkpoint: uint256 = last_point.ts
     # initial_last_point is used for extrapolation to calculate block number
     # (approximately, for *At methods) and save them
@@ -366,7 +358,7 @@ def _checkpoint(addr: address, old_locked: LockedBalance, new_locked: LockedBala
         # Fill for the current block, if applicable
         if t_i == block.timestamp:
             last_point.blk = block.number
-            last_point.perp_amt = self.supply
+            last_point.nfte_amt = self.supply
             break
         else:
             self.point_history[_epoch] = last_point
@@ -410,7 +402,7 @@ def _checkpoint(addr: address, old_locked: LockedBalance, new_locked: LockedBala
         self.user_point_epoch[addr] = user_epoch
         u_new.ts = block.timestamp
         u_new.blk = block.number
-        u_new.perp_amt = convert(self.locked[addr].amount, uint256)
+        u_new.nfte_amt = convert(self.locked[addr].amount, uint256)
         self.user_point_history[addr][user_epoch] = u_new
 
 
@@ -564,7 +556,7 @@ def withdraw():
 # The following ERC20/minime-compatible methods are not real balanceOf and supply!
 # They measure the weights for the purpose of voting, so they don't represent
 # real coins.
-# PERP adds minimal 1-1 PERP/vePERP, as well as a voting multiplier
+# NFTE adds minimal 1-1 NFTE/veNFTE, as well as a voting multiplier
 
 @internal
 @view
@@ -643,7 +635,7 @@ def _balance_of(addr: address, _t: uint256, weighted: bool) -> uint256:
     unweighted_supply: uint256 = convert(last_point.bias, uint256) # Original from veCRV
 
     if weighted:
-        return last_point.perp_amt + (VOTE_WEIGHT_MULTIPLIER * unweighted_supply)
+        return last_point.nfte_amt + (VOTE_WEIGHT_MULTIPLIER * unweighted_supply)
     else:
         return unweighted_supply
 
@@ -720,11 +712,11 @@ def balanceOfAt(addr: address, _block: uint256, weighted: bool = False) -> uint2
     upoint.bias -= upoint.slope * convert(block_time - upoint.ts, int128)
 
     unweighted_supply: uint256 = convert(upoint.bias, uint256) # Original from veCRV
-    weighted_supply: uint256 = upoint.perp_amt + (VOTE_WEIGHT_MULTIPLIER * unweighted_supply)
+    weighted_supply: uint256 = upoint.nfte_amt + (VOTE_WEIGHT_MULTIPLIER * unweighted_supply)
 
     if (not weighted) and (upoint.bias >= 0):
         return unweighted_supply
-    elif weighted and ((upoint.bias >= 0) or (upoint.perp_amt >= 0)):
+    elif weighted and ((upoint.bias >= 0) or (upoint.nfte_amt >= 0)):
         return weighted_supply
     else:
         return 0
@@ -760,7 +752,7 @@ def supply_at(point: Point, t: uint256, weighted: bool) -> uint256:
     unweighted_supply: uint256 = convert(last_point.bias, uint256) # Original from veCRV
 
     if weighted:
-        return last_point.perp_amt + (VOTE_WEIGHT_MULTIPLIER * unweighted_supply)
+        return last_point.nfte_amt + (VOTE_WEIGHT_MULTIPLIER * unweighted_supply)
     else:
         return unweighted_supply
 
@@ -829,24 +821,24 @@ def totalSupplyAt(_block: uint256, weighted: bool = False) -> uint256:
 
 @external
 @view
-def totalPERPSupply() -> uint256:
+def totalNFTESupply() -> uint256:
     """
-    @notice Calculate PERP supply
+    @notice Calculate NFTE supply
     @dev Adheres to the ERC20 `totalSupply` interface for Aragon compatibility
-    @return Total PERP supply
+    @return Total NFTE supply
     """
     return self.supply
 
 @external
 @view
-def totalPERPSupplyAt(_block: uint256) -> uint256:
+def totalNFTESupplyAt(_block: uint256) -> uint256:
     """
-    @notice Calculate total PERP at some point in the past
+    @notice Calculate total NFTE at some point in the past
     @param _block Block to calculate the total voting power at
-    @return Total PERP supply at `_block`
+    @return Total NFTE supply at `_block`
     """
     assert _block <= block.number
     _epoch: uint256 = self.epoch
     target_epoch: uint256 = self.find_block_epoch(_block, _epoch)
     point: Point = self.point_history[target_epoch]
-    return point.perp_amt
+    return point.nfte_amt

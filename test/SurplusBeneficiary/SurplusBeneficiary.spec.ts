@@ -3,15 +3,15 @@ import chai, { expect } from "chai"
 import { solidity } from "ethereum-waffle"
 import { parseUnits } from "ethers/lib/utils"
 import { ethers, waffle } from "hardhat"
-import { FeeDistributor, SurplusBeneficiary, TestERC20, VePERP } from "../../typechain"
+import { FeeDistributor, SurplusBeneficiary, TestERC20, VeNFTE } from "../../typechain"
 
 chai.use(solidity)
 
 describe("SurplusBeneficiary spec", () => {
     const [admin, alice] = waffle.provider.getWallets()
-    let vePERP: VePERP
+    let veNFTE: VeNFTE
     let surplusBeneficiary: SurplusBeneficiary
-    let testPERP: TestERC20
+    let testNFTE: TestERC20
     let testUSDC: TestERC20
     let treasury: TestERC20
     let fakeFeeDistributor: FakeContract<FeeDistributor>
@@ -24,8 +24,8 @@ describe("SurplusBeneficiary spec", () => {
 
     beforeEach(async () => {
         const testERC20Factory = await ethers.getContractFactory("TestERC20")
-        testPERP = await testERC20Factory.deploy()
-        await testPERP.__TestERC20_init("PERP", "PERP", 18)
+        testNFTE = await testERC20Factory.deploy()
+        await testNFTE.__TestERC20_init("NFTE", "NFTE", 18)
 
         testUSDC = await testERC20Factory.deploy()
         await testUSDC.__TestERC20_init("USDC", "USDC", 6)
@@ -33,8 +33,8 @@ describe("SurplusBeneficiary spec", () => {
         // use erc20 contract as a treasury contract
         treasury = await testERC20Factory.deploy()
 
-        const vePERPFactory = await ethers.getContractFactory("vePERP")
-        vePERP = (await vePERPFactory.deploy(testPERP.address, "vePERP", "vePERP", "v1")) as VePERP
+        const veNFTEFactory = await ethers.getContractFactory("veNFTE")
+        veNFTE = (await veNFTEFactory.deploy(testNFTE.address, "veNFTE", "veNFTE", "v1")) as VeNFTE
 
         fakeFeeDistributor = await smock.fake<FeeDistributor>("FeeDistributor")
         fakeFeeDistributor2 = await smock.fake<FeeDistributor>("FeeDistributor")
